@@ -30,6 +30,7 @@ interpolation::evalCatmullRom(glm::vec3 const& p0, glm::vec3 const& p1,
 		glm::vec4(0, t, 3 - 2 * t, t - 2),
 		glm::vec4(0, 0, -t, t)
 	);
+	
 	glm::mat3x4 p_mat = glm::mat3x4(
 		glm::vec4(p0.x, p1.x, p2.x, p3.x),
 		glm::vec4(p0.y, p1.y, p2.y, p3.y),

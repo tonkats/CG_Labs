@@ -46,6 +46,10 @@ namespace parametric_shapes
 	                               unsigned int const longitude_split_count,
 	                               unsigned int const latitude_split_count);
 
+	bonobo::mesh_data createSphere_old(float const radius,
+		unsigned int const longitude_split_count,
+		unsigned int const latitude_split_count);
+
 	//! \brief Create a torus for a given tesselation level and make it
 	//!        available to OpenGL.
 	//!

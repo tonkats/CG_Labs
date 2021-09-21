@@ -51,7 +51,7 @@ edaf80::Assignment2::run()
 
 	// Object to be translated
 	auto const movingSphere = parametric_shapes::createSphere(0.3f, 20u, 10u);
-
+	auto const donut = parametric_shapes::createTorus(0.5f, 0.1f, 16u, 8u);
 
 	// Set up the camera
 	mCamera.mWorld.SetTranslate(glm::vec3(0.0f, 1.0f, 9.0f));
@@ -138,6 +138,14 @@ edaf80::Assignment2::run()
 	movingNode.set_geometry(movingSphere);
 	movingNode.set_program(&fallback_shader, set_uniforms);
 	TRSTransformf& movingNode_transform_ref = movingNode.get_transform();
+
+	auto donutNode = Node();
+	donutNode.set_geometry(donut);
+	donutNode.set_program(&fallback_shader, set_uniforms);
+	TRSTransformf& donutNode_transform_ref = donutNode.get_transform();
+
+	// Translating donut
+	donutNode.get_transform().SetTranslate(glm::vec3(3, 3, 3));
 
 	//! \todo Create a tesselated sphere and a tesselated torus
 
@@ -226,14 +234,13 @@ edaf80::Assignment2::run()
 			//!        control points.
 
 			float moveTime = 2.0f;
-			float tau = 0.5f;
 
 			float currentTime = ellapsed_time_s / moveTime;
 			double index_f;
 			float lerpValue = std::modf(currentTime, &index_f);
 			int index = static_cast<int>(index_f);
 
-			glm::vec3 p1 = control_point_locations[(index + 1)% control_point_locations.size()];
+			glm::vec3 p1 = control_point_locations[(index + 1) % control_point_locations.size()];
 			glm::vec3 p2 = control_point_locations[(index + 2) % control_point_locations.size()];
 
 			glm::vec3 newPosition;
@@ -249,13 +256,16 @@ edaf80::Assignment2::run()
 				//!       variable as your tension argument.
 				glm::vec3 p0 = control_point_locations[index % control_point_locations.size()];
 				glm::vec3 p3 = control_point_locations[(index + 3) % control_point_locations.size()];
-				newPosition = interpolation::evalCatmullRom(p0, p1, p2, p3, tau, lerpValue);
+				newPosition = interpolation::evalCatmullRom(p0, p1, p2, p3, catmull_rom_tension, lerpValue);
 			}
 			movingNode.get_transform().SetTranslate(newPosition);
 		}
 
+		// Rendering all objects
 		circle_rings.render(mCamera.GetWorldToClipMatrix());
 		movingNode.render(mCamera.GetWorldToClipMatrix());
+		donutNode.render(mCamera.GetWorldToClipMatrix());
+
 		for (auto const& control_point : control_points) {
 			control_point.render(mCamera.GetWorldToClipMatrix());
 		}
