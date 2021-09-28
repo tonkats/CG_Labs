@@ -61,12 +61,83 @@ edaf80::Assignment4::run()
 	// Todo: Insert the creation of other shader programs.
 	//       (Check how it was done in assignment 3.)
 	//
+	GLuint skybox_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Skybox",
+		{ { ShaderType::vertex, "EDAF80/skybox.vert" },
+		  { ShaderType::fragment, "EDAF80/skybox.frag" } },
+		skybox_shader);
+	if (skybox_shader == 0u) {
+		LogError("Failed to load skybox shader");
+		return;
+	}
 
+	GLuint water_shader = 0u;
+	program_manager.CreateAndRegisterProgram("Water",
+		{ { ShaderType::vertex, "EDAF80/water.vert" },
+		  { ShaderType::fragment, "EDAF80/water.frag" } },
+		water_shader);
+	if (water_shader == 0u) {
+		LogError("Failed to load water shader");
+		return;
+	}
+
+
+
+
+	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
 	float ellapsed_time_s = 0.0f;
 
+	bool use_reflection_mapping = true;
+	bool use_animated_normal_mapping = true;
+	bool use_fresnel_factor = true;
+	bool use_refraction_mapping = true;
+
+	auto const set_uniforms = [&light_position, &ellapsed_time_s, &camera_position, &use_reflection_mapping,
+	&use_animated_normal_mapping, &use_fresnel_factor, &use_refraction_mapping](GLuint program) {
+		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
+		glUniform1f(glGetUniformLocation(program, "t"), ellapsed_time_s);
+		glUniform3fv(glGetUniformLocation(program, "camera_position"), 1, glm::value_ptr(camera_position));
+		glUniform1i(glGetUniformLocation(program, "use_reflection_mapping"), use_reflection_mapping ? 1 : 0);
+		glUniform1i(glGetUniformLocation(program, "use_animated_normal_mapping"), use_animated_normal_mapping ? 1 : 0);
+		glUniform1i(glGetUniformLocation(program, "use_fresnel_factor"), use_fresnel_factor ? 1 : 0);
+		glUniform1i(glGetUniformLocation(program, "use_refraction_mapping"), use_refraction_mapping ? 1 : 0);
+	};
+	
 	//
 	// Todo: Load your geometry
 	//
+	auto skybox_shape = parametric_shapes::createSphere(50.0f, 100u, 100u);
+	if (skybox_shape.vao == 0u) {
+		LogError("Failed to retrieve the mesh for the skybox");
+		return;
+	}
+	auto water_shape = parametric_shapes::createQuad(100.0f, 100.0f, 1000u, 1000u);
+	if (water_shape.vao == 0u) {
+		LogError("Failed to retrieve the mesh for the quad");
+		return;
+	}
+
+	auto my_cube_map_id = bonobo::loadTextureCubeMap(config::resources_path("cubemaps/NissiBeach2/posx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/negx.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posy.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/negy.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/posz.jpg"),
+		config::resources_path("cubemaps/NissiBeach2/negz.jpg"));
+
+	auto my_texture_normal_id = bonobo::loadTexture2D(config::resources_path("textures/waves.png"));
+
+	Node skybox;
+	skybox.set_geometry(skybox_shape);
+	skybox.set_program(&skybox_shader, set_uniforms);
+	skybox.add_texture("my_cube_map", my_cube_map_id, GL_TEXTURE_CUBE_MAP);
+
+	Node water;
+	water.set_geometry(water_shape);
+	water.set_program(&water_shader, set_uniforms);
+	water.add_texture("my_cube_map", my_cube_map_id, GL_TEXTURE_CUBE_MAP);
+	water.add_texture("my_texture_normal", my_texture_normal_id, GL_TEXTURE_2D);
+
+	water.get_transform().SetTranslate(glm::vec3(-50.0f, -5.0f, -50.0f));
 
 	glClearDepthf(1.0f);
 	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -130,7 +201,8 @@ edaf80::Assignment4::run()
 		//
 		// Todo: If you need to handle inputs, you can do it here
 		//
-
+		
+		//
 
 		mWindowManager.NewImGuiFrame();
 
@@ -142,6 +214,8 @@ edaf80::Assignment4::run()
 			//
 			// Todo: Render all your geometry here.
 			//
+			skybox.render(mCamera.GetWorldToClipMatrix());
+			water.render(mCamera.GetWorldToClipMatrix());
 		}
 
 
@@ -162,6 +236,10 @@ edaf80::Assignment4::run()
 			bonobo::uiSelectPolygonMode("Polygon mode", polygon_mode);
 			ImGui::Separator();
 			ImGui::Checkbox("Show basis", &show_basis);
+			ImGui::Checkbox("Use reflection mapping", &use_reflection_mapping);
+			ImGui::Checkbox("Use animated normal mapping", &use_animated_normal_mapping);
+			ImGui::Checkbox("Add fresnel factor to reflection lighting", &use_fresnel_factor);
+			ImGui::Checkbox("Use refraction mapping", &use_refraction_mapping);
 			ImGui::SliderFloat("Basis thickness scale", &basis_thickness_scale, 0.0f, 100.0f);
 			ImGui::SliderFloat("Basis length scale", &basis_length_scale, 0.0f, 100.0f);
 		}

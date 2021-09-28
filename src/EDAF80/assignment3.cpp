@@ -134,12 +134,12 @@ edaf80::Assignment3::run()
 		return;
 	}
 
-	auto my_cube_map_id = bonobo::loadTextureCubeMap("C:/Users/maxbe/Documents/GitHub/CG_Labs/res/cubemaps/LarnacaCastle/posx.jpg",
-		"C:/Users/maxbe/Documents/GitHub/CG_Labs/res/cubemaps/LarnacaCastle/negx.jpg",
-		"C:/Users/maxbe/Documents/GitHub/CG_Labs/res/cubemaps/LarnacaCastle/posy.jpg",
-		"C:/Users/maxbe/Documents/GitHub/CG_Labs/res/cubemaps/LarnacaCastle/negy.jpg",
-		"C:/Users/maxbe/Documents/GitHub/CG_Labs/res/cubemaps/LarnacaCastle/posz.jpg",
-		"C:/Users/maxbe/Documents/GitHub/CG_Labs/res/cubemaps/LarnacaCastle/negz.jpg");
+	auto my_cube_map_id = bonobo::loadTextureCubeMap(config::resources_path("cubemaps/LarnacaCastle/posx.jpg"),
+		config::resources_path("cubemaps/LarnacaCastle/negx.jpg"),
+		config::resources_path("cubemaps/LarnacaCastle/posy.jpg"),
+		config::resources_path("cubemaps/LarnacaCastle/negy.jpg"),
+		config::resources_path("cubemaps/LarnacaCastle/posz.jpg"),
+		config::resources_path("cubemaps/LarnacaCastle/negz.jpg"));
 
 	Node skybox;
 	skybox.set_geometry(skybox_shape);
@@ -153,8 +153,9 @@ edaf80::Assignment3::run()
 		return;
 	}
 
-	auto my_texture_id = bonobo::loadTexture2D("C:/Users/maxbe/Documents/GitHub/CG_Labs/res/textures/leather_red_02_coll1_2k.jpg");
-	auto my_texture_normal_id = bonobo::loadTexture2D("C:/Users/maxbe/Documents/GitHub/CG_Labs/res/textures/leather_red_02_nor_2k.jpg");
+	auto my_texture_id = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_coll1_2k.jpg"));
+	auto my_texture_normal_id = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_nor_2k.jpg"));
+	auto my_texture_rough_id = bonobo::loadTexture2D(config::resources_path("textures/leather_red_02_rough_2k.jpg"));
 
 	Node demo_sphere;
 	demo_sphere.set_geometry(demo_shape);
@@ -162,6 +163,7 @@ edaf80::Assignment3::run()
 
 	demo_sphere.add_texture("my_texture", my_texture_id, GL_TEXTURE_2D);
 	demo_sphere.add_texture("my_texture_normal", my_texture_normal_id, GL_TEXTURE_2D);
+	demo_sphere.add_texture("my_texture_rough", my_texture_rough_id, GL_TEXTURE_2D);
 
 
 	glClearDepthf(1.0f);
