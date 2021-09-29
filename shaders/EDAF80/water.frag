@@ -73,13 +73,14 @@ void main()
 		vec4 reflection;
 		reflection = texture(my_cube_map, reflect(-V, normal));
 		if (use_fresnel_factor == 1) {
-			fresnel = r0 + (1 - r0) * pow((1 - dot(V, normal)), 5);
+			fresnel = r0 + (1 - r0) * pow(1.0 - dot(V, normal), 5);
 			reflection = reflection * fresnel;
 		}
 		frag_color += reflection;
 	}
 	if (use_refraction_mapping == 1) {
-		vec4 refraction = texture(my_cube_map, refract(-V, normal, 1.33));
+		vec4 refraction = texture(my_cube_map, refract(-V, normal, 1/1.33));
 		frag_color += refraction * (1.0 - fresnel);
 	}
+	//frag_color = vec4(vec3(normal.x * 0.5 + 0.5, pow(normal.y * 0.5 + 0.5, 15), normal.z * 0.5 + 0.5), 1.0);
 }
