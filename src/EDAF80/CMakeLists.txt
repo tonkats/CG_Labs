@@ -83,8 +83,13 @@ target_sources (
 	PRIVATE
 		[[assignment5.hpp]]
 		[[assignment5.cpp]]
+        [[parametric_shapes.hpp]]
+        [[parametric_shapes.cpp]]
 )
-target_link_libraries (EDAF80_Assignment5 PRIVATE assignment_setup)
+target_link_libraries (
+	EDAF80_Assignment5
+	PRIVATE assignment_setup
+)
 copy_dlls (EDAF80_Assignment5 "${CMAKE_CURRENT_BINARY_DIR}")
 
 

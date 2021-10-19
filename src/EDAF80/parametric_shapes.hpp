@@ -103,4 +103,13 @@ namespace parametric_shapes
 	                                   float const spread_length,
 	                                   unsigned int const circle_split_count,
 	                                   unsigned int const spread_split_count);
+
+	bonobo::mesh_data createCrosshair(float const width,
+		float const height);
+
+	bonobo::mesh_data createAsteroid(float const radius,
+		unsigned int const longitude_split_count,
+		unsigned int const latitude_split_count,
+		float speed,
+		glm::vec3 moveDirection);
 }

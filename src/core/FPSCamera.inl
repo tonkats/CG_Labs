@@ -81,6 +81,59 @@ void FPSCamera<T, P>::Update(std::chrono::microseconds deltaTime, InputHandler &
 }
 
 template<typename T, glm::precision P>
+void FPSCamera<T, P>::UpdateNew(std::chrono::microseconds deltaTime, InputHandler& ih, bool ignoreKeyEvents, bool ignoreMouseEvents)
+{
+	glm::tvec2<T, P> newMousePosition = glm::tvec2<T, P>(ih.GetMousePosition().x, ih.GetMousePosition().y);
+	glm::tvec2<T, P> mouse_diff = newMousePosition - mMousePosition;
+	mouse_diff.y = -mouse_diff.y;
+	mMousePosition = newMousePosition;
+	mouse_diff *= mMouseSensitivity;
+
+	if (!ih.IsMouseCapturedByUI() && !ignoreMouseEvents) {
+		mRotation.x -= mouse_diff.x;
+		mRotation.y += mouse_diff.y;
+		mWorld.SetRotateX(mRotation.y);
+		mWorld.RotateY(mRotation.x);
+	}
+
+	T movementModifier = ((ih.GetKeycodeState(GLFW_KEY_LEFT_SHIFT) & PRESSED)) ? 0.25f : ((ih.GetKeycodeState(GLFW_KEY_LEFT_CONTROL) & PRESSED)) ? 4.0f : 1.0f;
+	auto const deltaTime_s = std::chrono::duration<T>(deltaTime);
+	T movement = movementModifier * deltaTime_s.count() * mMovementSpeed;
+
+	T move = 0.0f, strafe = 0.0f, levitate = 0.0f;
+	if (!ih.IsKeyboardCapturedByUI() && !ignoreKeyEvents) {
+		if ((ih.GetKeycodeState(GLFW_KEY_W) & PRESSED)) move += movement;
+		if ((ih.GetKeycodeState(GLFW_KEY_S) & PRESSED)) move -= movement;
+		if ((ih.GetKeycodeState(GLFW_KEY_A) & PRESSED)) strafe -= movement;
+		if ((ih.GetKeycodeState(GLFW_KEY_D) & PRESSED)) strafe += movement;
+		if ((ih.GetKeycodeState(GLFW_KEY_Q) & PRESSED)) levitate -= movement;
+		if ((ih.GetKeycodeState(GLFW_KEY_E) & PRESSED)) levitate += movement;
+	}
+
+	mWorld.Translate(mWorld.GetFront() * move);
+	mWorld.Translate(mWorld.GetRight() * strafe);
+	mWorld.Translate(mWorld.GetUp() * levitate);
+}
+
+template<typename T, glm::precision P>
+void FPSCamera<T, P>::UpdateRotate(std::chrono::microseconds deltaTime, InputHandler& ih, bool ignoreKeyEvents, bool ignoreMouseEvents)
+{
+	glm::tvec2<T, P> newMousePosition = glm::tvec2<T, P>(ih.GetMousePosition().x, ih.GetMousePosition().y);
+	glm::tvec2<T, P> mouse_diff = newMousePosition - mMousePosition;
+	mouse_diff.y = -mouse_diff.y;
+	mMousePosition = newMousePosition;
+	mouse_diff *= mMouseSensitivity;
+
+
+	if (!ih.IsMouseCapturedByUI() && !ignoreMouseEvents) {
+		mRotation.x -= mouse_diff.x;
+		mRotation.y += mouse_diff.y;
+		mWorld.SetRotateX(mRotation.y);
+		mWorld.RotateY(mRotation.x);
+	}
+}
+
+template<typename T, glm::precision P>
 glm::tmat4x4<T, P> FPSCamera<T, P>::GetViewToWorldMatrix()
 {
 	return mWorld.GetMatrix();

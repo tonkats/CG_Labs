@@ -26,11 +26,11 @@ void main()
 {
 	vec3 view_position = camera_position - fs_in.vertex;
 	vec3 normal = fs_in.normal;
-	if (use_normal_mapping == 1){
-		normal = texture(my_texture_normal, fs_in.texcoord).rgb;
-		normal = normal * 2.0 - 1.0;
-		normal = normalize(fs_in.TBN * normal);
-	}
+	//if (use_normal_mapping == 1){
+	normal = texture(my_texture_normal, fs_in.texcoord).rgb;
+	normal = normal * 2.0 - 1.0;
+	normal = normalize(fs_in.TBN * normal);
+	//}
 	vec3 L = normalize(light_position - fs_in.vertex);
 
 	vec3 specular_rough = texture(my_texture_rough, fs_in.texcoord).rgb;
