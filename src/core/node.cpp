@@ -7,27 +7,30 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-Node::Node() : _vao(0u), _vertices_nb(0u), _indices_nb(0u), _drawing_mode(GL_TRIANGLES), _has_indices(true), _program(nullptr), _textures(), _transform(), _children()
-{
-}
-
 void
 Node::render(glm::mat4 const& view_projection, glm::mat4 const& parent_transform) const
 {
-	if (_program != nullptr)
-		render(view_projection, parent_transform * _transform.GetMatrix(), *_program, _set_uniforms);
+	if (_program == nullptr) {
+		LogError("Node \"%s\" can not be rendered due to lacking a shader program.", _name.c_str() + 7);
+		return;
+	}
+
+	render(view_projection, parent_transform * _transform.GetMatrix(), *_program, _set_uniforms);
 }
 
 void
-Node::render(glm::mat4 const& view_projection, glm::mat4 const& world, GLuint program, std::function<void (GLuint)> const& set_uniforms) const
+Node::render(glm::mat4 const& view_projection, glm::mat4 const& world, GLuint program, std::function<void(GLuint)> const& set_uniforms) const
 {
-	if (_vao == 0u || program == 0u)
+	if (program == 0u) {
+		LogError("Node \"%s\" can not be rendered with the specified shader program (currently set to 0).", _name.c_str() + 7);
 		return;
-
-	if (utils::opengl::debug::isSupported())
-	{
-		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0u, _name.size(), _name.data());
 	}
+	if (_vao == 0u) {
+		LogError("Node \"%s\" can not be rendered due to lacking a VAO (currently set to 0).", _name.c_str() + 7);
+		return;
+	}
+
+	utils::opengl::debug::beginDebugGroup(_name);
 
 	glUseProgram(program);
 
@@ -49,6 +52,14 @@ Node::render(glm::mat4 const& view_projection, glm::mat4 const& world, GLuint pr
 		glUniform1i(glGetUniformLocation(program, texture_presence_var_name.c_str()), 1);
 	}
 
+	glUniform3fv(glGetUniformLocation(program, "diffuse_colour"), 1, glm::value_ptr(_constants.diffuse));
+	glUniform3fv(glGetUniformLocation(program, "specular_colour"), 1, glm::value_ptr(_constants.specular));
+	glUniform3fv(glGetUniformLocation(program, "ambient_colour"), 1, glm::value_ptr(_constants.ambient));
+	glUniform3fv(glGetUniformLocation(program, "emissive_colour"), 1, glm::value_ptr(_constants.emissive));
+	glUniform1f(glGetUniformLocation(program, "shininess_value"), _constants.shininess);
+	glUniform1f(glGetUniformLocation(program, "index_of_refraction_value"), _constants.indexOfRefraction);
+	glUniform1f(glGetUniformLocation(program, "opacity_value"), _constants.opacity);
+
 	glBindVertexArray(_vao);
 	if (_has_indices)
 		glDrawElements(_drawing_mode, _indices_nb, GL_UNSIGNED_INT, reinterpret_cast<GLvoid const*>(0x0));
@@ -66,30 +77,40 @@ Node::render(glm::mat4 const& view_projection, glm::mat4 const& world, GLuint pr
 
 	glUseProgram(0u);
 
-	if (utils::opengl::debug::isSupported())
-	{
-		glPopDebugGroup();
-	}
+	utils::opengl::debug::endDebugGroup();
 }
 
 void
 Node::set_geometry(bonobo::mesh_data const& shape)
 {
+	if (shape.vao == 0u) {
+		LogError("The shape's VAO can not be 0; this operation will be discarded.");
+		return;
+	}
+
 	_vao = shape.vao;
 	_vertices_nb = static_cast<GLsizei>(shape.vertices_nb);
 	_indices_nb = static_cast<GLsizei>(shape.indices_nb);
 	_drawing_mode = shape.drawing_mode;
 	_has_indices = shape.ibo != 0u;
-	_name = shape.name;
+	_name = std::string("Render ") + shape.name;
 
 	if (!shape.bindings.empty()) {
 		for (auto const& binding : shape.bindings)
 			add_texture(binding.first, binding.second, GL_TEXTURE_2D);
 	}
+
+	_constants = shape.material;
 }
 
 void
-Node::set_program(GLuint const* const program, std::function<void (GLuint)> const& set_uniforms)
+Node::set_material_constants(bonobo::material_data const& constants)
+{
+	_constants = constants;
+}
+
+void
+Node::set_program(GLuint const* const program, std::function<void(GLuint)> const& set_uniforms)
 {
 	if (program == nullptr) {
 		LogError("Program can not be a null pointer; this operation will be discarded.");
@@ -98,6 +119,12 @@ Node::set_program(GLuint const* const program, std::function<void (GLuint)> cons
 
 	_program = program;
 	_set_uniforms = set_uniforms;
+}
+
+void
+Node::set_name(std::string const& name)
+{
+	_name = std::string("Render ") + name;
 }
 
 size_t
@@ -115,20 +142,20 @@ Node::set_indices_nb(size_t const& indices_nb)
 void
 Node::add_texture(std::string const& name, GLuint tex_id, GLenum type)
 {
-	GLint max_combined_texture_image_units{-1};
+	GLint max_combined_texture_image_units{ -1 };
 	glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_combined_texture_image_units);
 	std::size_t const max_active_texture_count
 		= (max_combined_texture_image_units > 0) ? static_cast<std::size_t>(max_combined_texture_image_units)
-		                                         : 80; // OpenGL 4.x guarantees at least 80.
+		: 80; // OpenGL 4.x guarantees at least 80.
 
 	if (_textures.size() >= max_active_texture_count) {
 		LogWarning("Trying to add more textures to an object than supported (%llu); the texture %s with ID %u will **not** be added. If you really need that many textures, do not use the `Node` class and roll your own solution instead.",
-		           max_active_texture_count, name.c_str(), tex_id);
+			max_active_texture_count, name.c_str(), tex_id);
 		return;
 	}
 	if (tex_id == 0u) {
 		LogWarning("0 is not a valid texture ID; the texture %s (with ID %u) will **not** be added.",
-		           name.c_str(), tex_id);
+			name.c_str(), tex_id);
 		return;
 	}
 

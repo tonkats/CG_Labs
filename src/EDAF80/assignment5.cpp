@@ -68,11 +68,11 @@ edaf80::Assignment5::run()
 
 	const int no_asteroids = 10;
 	float asteroid_radius = 3.0f;
-	float asteroidGrowSpeed = 0.002f;
+	float asteroidGrowSpeed = 0.01f;
 	float minAsteroidStartSize = 0.01f;
 
 	float asteroidMaxSpeed = 0.2f;
-	float asteroidMinSpeed = 0.05f;
+	float asteroidMinSpeed = 0.1f;
 
 	float asteroidMean = 0.2f;
 	float asteroidStd = 0.1f;
@@ -169,13 +169,13 @@ edaf80::Assignment5::run()
 	}
 
 
-	auto light_position = glm::vec3(-2.0f, 4.0f, 2.0f);
+	auto light_position = glm::vec3(-2.0f, planet_radius * 2.0f, skyBoxRadius/2);
 	auto const set_uniforms = [&light_position](GLuint program) {
 		glUniform3fv(glGetUniformLocation(program, "light_position"), 1, glm::value_ptr(light_position));
 	};
 	bool use_normal_mapping = true;
 	auto camera_position = mCamera.mWorld.GetTranslation();
-	auto ambient = glm::vec3(0.1f, 0.1f, 0.1f);
+	auto ambient = glm::vec3(0.2f, 0.2f, 0.2f);
 	auto diffuse = glm::vec3(0.7f, 0.2f, 0.4f);
 	auto specular = glm::vec3(1.0f, 1.0f, 1.0f);
 	auto shininess = 10.0f;
@@ -230,6 +230,11 @@ edaf80::Assignment5::run()
 		LogError("Failed to retrieve the mesh for the demo sphere");
 		return;
 	}
+	bonobo::material_data demo_material;
+	demo_material.ambient = glm::vec3(0.1f, 0.1f, 0.1f);
+	demo_material.shininess = 5.0f;
+
+
 	auto my_texture_id = bonobo::loadTexture2D(config::resources_path("planets/2k_earth_daymap.jpg"));
 	auto my_texture_normal_id = bonobo::loadTexture2D(config::resources_path("planets/2k_earth_normal_map.png"));
 	auto my_texture_rough_id = bonobo::loadTexture2D(config::resources_path("planets/2k_earth_daymap_rough.jpg"));
@@ -240,6 +245,7 @@ edaf80::Assignment5::run()
 
 	Node planet;
 	planet.set_geometry(planet_shape);
+	planet.set_material_constants(demo_material);
 	planet.set_program(&phong_shader, phong_set_uniforms);
 	planet.add_texture("my_texture", my_texture_id, GL_TEXTURE_2D);
 	planet.add_texture("my_texture_normal", my_texture_normal_id, GL_TEXTURE_2D);
@@ -258,18 +264,19 @@ edaf80::Assignment5::run()
 	auto my_ship_texture_id = bonobo::loadTexture2D(config::resources_path("scenes/Textures/StarSparrow_Red.png"));
 	auto my_ship_texture_normal_id = bonobo::loadTexture2D(config::resources_path("scenes/Textures/StarSparrow_Normal.png"));
 	auto my_ship_texture_rough_id = bonobo::loadTexture2D(config::resources_path("scenes/Textures/StarSparrow_Roughness.png"));
-	ship.add_texture("my_texture", my_ship_texture_id, GL_TEXTURE_2D);
-	ship.add_texture("my_texture_normal", my_ship_texture_normal_id, GL_TEXTURE_2D);
-	ship.add_texture("my_texture_rough", my_ship_texture_rough_id, GL_TEXTURE_2D);
 
 
 	// Ship models
 	Node ship_model[1];
 	for (int i = 0; i < ship_shape.size(); i++) {
+		ship_model[i].add_texture("my_texture", my_ship_texture_id, GL_TEXTURE_2D);
+		ship_model[i].add_texture("my_texture_normal", my_ship_texture_normal_id, GL_TEXTURE_2D);
+		ship_model[i].add_texture("my_texture_rough", my_ship_texture_rough_id, GL_TEXTURE_2D);
 		ship_model[i].set_geometry(ship_shape[i]);
 		ship_model[i].set_program(&phong_shader, phong_set_uniforms);
 		ship.add_child(&ship_model[i]);
 		ship_model[i].get_transform().SetScale(0.5f);
+		ship_model[i].set_material_constants(demo_material);
 	}
 
 
@@ -280,19 +287,22 @@ edaf80::Assignment5::run()
 
 	// Missile
 	auto missile_shape = bonobo::loadObjects(config::resources_path("scenes/rocket.3ds"));
-	if (planet_shape.vao == 0u) {
+	if (missile_shape.empty()) {
 		LogError("Failed to retrieve the mesh for the missile");
 		return;
 	}
 	Node missile;
 
+	auto my_missile_texture_id = bonobo::loadTexture2D(config::resources_path("scenes/Textures/Missile.png"));
 	Node missile_model[8];
 	bool missileReady = true;
 	for (int i = 0; i < missile_shape.size(); i++) {
 		missile_model[i].set_geometry(missile_shape[i]);
+		missile_model[i].add_texture("my_texture", my_missile_texture_id, GL_TEXTURE_2D);
 		missile_model[i].set_program(&phong_shader, phong_set_uniforms);
 		missile.add_child(&missile_model[i]);
 		missile_model[i].get_transform().SetScale(0.2f);
+		missile_model[i].set_material_constants(demo_material);
 	}
 
 	// Asteroids
@@ -319,7 +329,7 @@ edaf80::Assignment5::run()
 		asteroid[i].add_texture("my_texture", my_asteroid_texture_id, GL_TEXTURE_2D);
 		asteroid[i].add_texture("my_texture_normal", my_asteroid_texture_normal_id, GL_TEXTURE_2D);
 		asteroid[i].add_texture("my_texture_rough", my_asteroid_texture_rough_id, GL_TEXTURE_2D);
-
+		asteroid[i].set_material_constants(demo_material);
 
 
 		asteroid[i].get_transform().SetTranslate(pos_vec * skyBoxRadius);
@@ -352,7 +362,7 @@ edaf80::Assignment5::run()
 	//crosshair_vertical.set_geometry(crosshair_vertical_shape);
 	//crosshair_vertical.set_program(&fallback_shader, phong_set_uniforms);
 
-	bonobo::mesh_data crosshair_shape = parametric_shapes::createSphere(0.2f, 5u, 5u);
+	bonobo::mesh_data crosshair_shape = parametric_shapes::createSphere(0.3f, 5u, 5u);
 	Node crosshair;
 	crosshair.set_geometry(crosshair_shape);
 	crosshair.set_program(&crosshair_shader, phong_set_uniforms);
@@ -615,6 +625,9 @@ edaf80::Assignment5::run()
 
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
+		// Setting camera position
+		camera_position = mCamera.mWorld.GetTranslation();
+		//
 
 		if (!shader_reload_failed) {
 			//
